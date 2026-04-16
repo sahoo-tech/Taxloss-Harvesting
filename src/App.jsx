@@ -92,6 +92,17 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
+  const [theme, setTheme]             = useState("dark");
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    if (newTheme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  };
 
   // Fetch data on mount
   useEffect(() => {
@@ -146,7 +157,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header />
+      <Header theme={theme} toggleTheme={toggleTheme} />
 
       <main className="main-content">
         {/* Page Title + How it Works */}
