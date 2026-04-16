@@ -1,34 +1,5 @@
 import { formatINR, gainClass } from "../utils/format";
 
-function GainRow({ label, value, isPost }) {
-  const cls = gainClass(value);
-  return (
-    <div className="gains-row">
-      <span className="gains-row-label">{label}</span>
-      <span
-        className={`gains-row-value ${isPost ? "" : cls}`}
-      >
-        {formatINR(value)}
-      </span>
-    </div>
-  );
-}
-
-function NetRow({ label, value, isPost }) {
-  const cls = gainClass(value);
-  return (
-    <div className="gains-net-row">
-      <span className="gains-net-label">{label}</span>
-      <span
-        className={`gains-net-value ${isPost ? "" : cls}`}
-        style={isPost ? { color: "white" } : {}}
-      >
-        {formatINR(value)}
-      </span>
-    </div>
-  );
-}
-
 /**
  * CapitalGainsCard
  * variant: "pre" | "post"
@@ -38,11 +9,16 @@ function NetRow({ label, value, isPost }) {
 export default function CapitalGainsCard({ variant, gains, savings }) {
   const isPost = variant === "post";
 
-  const stcgNet = (gains?.stcg?.profits ?? 0) - (gains?.stcg?.losses ?? 0);
-  const ltcgNet = (gains?.ltcg?.profits ?? 0) - (gains?.ltcg?.losses ?? 0);
-  const realised = stcgNet + ltcgNet;
+  // Aggregate short-term + long-term into single totals
+  const totalProfits = (gains?.stcg?.profits ?? 0) + (gains?.ltcg?.profits ?? 0);
+  const totalLosses  = (gains?.stcg?.losses  ?? 0) + (gains?.ltcg?.losses  ?? 0);
+  const netGains     = totalProfits - totalLosses;
+  const realised     = netGains;
 
   const showSavings = isPost && savings !== null && savings > 0;
+
+  const rowStyle = (value) =>
+    isPost ? {} : { color: value < 0 ? "var(--red)" : value > 0 ? "var(--green)" : "var(--text-primary)" };
 
   return (
     <div className={`gains-card ${variant} fade-in`}>
@@ -51,54 +27,38 @@ export default function CapitalGainsCard({ variant, gains, savings }) {
         <span className="card-title">
           {isPost ? "After Tax Loss Harvesting" : "Pre-Harvesting"}
         </span>
-        <div className="card-icon">
-          {isPost ? "💎" : "📊"}
-        </div>
       </div>
 
       <div className="gains-divider" />
 
-      {/* Short-Term Capital Gains */}
-      <p className="gains-section-label">Short-Term Capital Gains</p>
+      {/* Profits */}
       <div className="gains-rows">
-        <GainRow
-          label="Profits"
-          value={gains?.stcg?.profits ?? 0}
-          isPost={isPost}
-        />
-        <GainRow
-          label="Losses"
-          value={-(gains?.stcg?.losses ?? 0)}
-          isPost={isPost}
-        />
-      </div>
-      <NetRow
-        label="Short-Term Net Gains"
-        value={stcgNet}
-        isPost={isPost}
-      />
+        <div className="gains-row">
+          <span className="gains-row-label">Profits</span>
+          <span className="gains-row-value" style={rowStyle(totalProfits)}>
+            {formatINR(totalProfits)}
+          </span>
+        </div>
 
-      {/* Long-Term Capital Gains */}
-      <p className="gains-section-label" style={{ marginTop: "var(--space-4)" }}>
-        Long-Term Capital Gains
-      </p>
-      <div className="gains-rows">
-        <GainRow
-          label="Profits"
-          value={gains?.ltcg?.profits ?? 0}
-          isPost={isPost}
-        />
-        <GainRow
-          label="Losses"
-          value={-(gains?.ltcg?.losses ?? 0)}
-          isPost={isPost}
-        />
+        {/* Losses */}
+        <div className="gains-row">
+          <span className="gains-row-label">Losses</span>
+          <span className="gains-row-value" style={rowStyle(-totalLosses)}>
+            -{formatINR(totalLosses)}
+          </span>
+        </div>
       </div>
-      <NetRow
-        label="Long-Term Net Gains"
-        value={ltcgNet}
-        isPost={isPost}
-      />
+
+      {/* Net Capital Gains */}
+      <div className="gains-net-row">
+        <span className="gains-net-label">Net Capital Gains</span>
+        <span
+          className="gains-net-value"
+          style={isPost ? { color: "white" } : rowStyle(netGains)}
+        >
+          {formatINR(netGains)}
+        </span>
+      </div>
 
       {/* Realised Capital Gains */}
       <div className="realised-section">
@@ -111,7 +71,7 @@ export default function CapitalGainsCard({ variant, gains, savings }) {
         </p>
       </div>
 
-      {/* Savings Banner (only on post card) */}
+      {/* Savings Banner (only on post card when savings exist) */}
       {showSavings && (
         <div className="savings-banner">
           <span className="savings-icon">🎉</span>
